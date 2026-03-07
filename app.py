@@ -46,7 +46,18 @@ def init_firebase():
                 tmp = f.name
             cred = credentials.Certificate(tmp)
         else:
-            key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'serviceAccountKey.json')
+            possible_paths = [
+                '/etc/secrets/serviceAccountKey.json',
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), 'serviceAccountKey.json'),
+                'serviceAccountKey.json',
+            ]
+            key_path = next((p for p in possible_paths if os.path.exists(p)), None)
+            if not key_path:
+                raise FileNotFoundError(
+                    'No Firebase credentials found! '
+                    'On Render: add FIREBASE_CREDENTIALS as environment variable.'
+                )
+            print(f"Found credentials at: {key_path}")
             cred = credentials.Certificate(key_path)
         firebase_admin.initialize_app(cred)
         return firestore.client()
