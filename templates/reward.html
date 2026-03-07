@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Rewards – DeliverX</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0f0f1a; min-height:100vh; font-family:'Segoe UI',sans-serif; color:#fff; padding-bottom:30px; }
+.topbar { background:#181825; padding:16px 20px; border-bottom:1px solid #2a2a3a; display:flex; justify-content:space-between; align-items:center; }
+.topbar h2 { font-size:18px; font-weight:700; }
+.back-btn { color:#ff6b35; text-decoration:none; font-size:14px; font-weight:600; }
+.hero {
+  background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);
+  padding:40px 20px 30px; text-align:center;
+  border-bottom:1px solid #2a2a3a;
+}
+.trophy { font-size:60px; margin-bottom:12px; animation:bounce 1s infinite; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.hero h1 { font-size:24px; font-weight:800; }
+.hero p { color:#aaa; font-size:14px; margin-top:6px; }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:20px; }
+.stat-box {
+  background:#181825; border-radius:16px; padding:20px;
+  border:1px solid #2a2a3a; text-align:center;
+}
+.stat-box.highlight { background:linear-gradient(135deg,#1a2a1a,#1a3a1a); border-color:#2ed573; }
+.stat-box.payment { background:linear-gradient(135deg,#2a1a0a,#3a2a0a); border-color:#ffa502; grid-column:span 2; }
+.stat-icon { font-size:28px; margin-bottom:8px; }
+.stat-val { font-size:28px; font-weight:800; }
+.stat-val.green { color:#2ed573; }
+.stat-val.red { color:#ff4757; }
+.stat-val.orange { color:#ffa502; }
+.stat-val.payment { font-size:38px; color:#ffa502; }
+.stat-lbl { font-size:12px; color:#666; margin-top:4px; font-weight:600; text-transform:uppercase; }
+.section { padding:0 20px; }
+.section-title { color:#aaa; font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px; }
+.stop-row {
+  background:#181825; border-radius:12px; padding:14px;
+  margin-bottom:8px; display:flex; align-items:center; gap:12px;
+  border:1px solid #2a2a3a;
+}
+.stop-row.completed { border-left:4px solid #2ed573; }
+.stop-row.failed { border-left:4px solid #ff4757; }
+.stop-row.pending { border-left:4px solid #444; }
+.stop-row-icon { font-size:20px; flex-shrink:0; }
+.stop-row-info { flex:1; }
+.stop-row-name { font-size:13px; color:#ddd; }
+.stop-row-reason { font-size:11px; color:#ff4757; margin-top:2px; }
+.btn-row { display:flex; gap:10px; padding:20px; margin-top:8px; }
+.btn-primary { flex:1; padding:14px; background:linear-gradient(135deg,#ff6b35,#ff9500); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; }
+.btn-secondary { flex:1; padding:14px; background:#181825; color:#aaa; border:1px solid #2a2a3a; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; }
+.finish-btn { width:calc(100% - 40px); margin:0 20px; padding:14px; background:linear-gradient(135deg,#2ed573,#1abc9c); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/dashboard" class="back-btn">← Dashboard</a>
+  <h2>🏆 Today's Rewards</h2>
+  <a href="/map" style="color:#3742fa;font-size:14px;font-weight:600;text-decoration:none;">Map →</a>
+</div>
+
+<div class="hero">
+  <div class="trophy">
+    {% if completed == total and total > 0 %}🏆{% elif completed > 0 %}⭐{% else %}📦{% endif %}
+  </div>
+  <h1>Hi {{ name }}!</h1>
+  <p>Here's your delivery summary for today</p>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-box">
+    <div class="stat-icon">📦</div>
+    <div class="stat-val">{{ total }}</div>
+    <div class="stat-lbl">Total Stops</div>
+  </div>
+  <div class="stat-box highlight">
+    <div class="stat-icon">✅</div>
+    <div class="stat-val green">{{ completed }}</div>
+    <div class="stat-lbl">Delivered</div>
+  </div>
+  <div class="stat-box" style="background:linear-gradient(135deg,#2a1a1a,#3a1a1a);border-color:#ff4757">
+    <div class="stat-icon">❌</div>
+    <div class="stat-val red">{{ failed }}</div>
+    <div class="stat-lbl">Failed</div>
+  </div>
+  <div class="stat-box" style="background:linear-gradient(135deg,#1a1a2a,#2a1a3a);border-color:#5352ed">
+    <div class="stat-icon">⏳</div>
+    <div class="stat-val" style="color:#5352ed">{{ pending }}</div>
+    <div class="stat-lbl">Pending</div>
+  </div>
+  <div class="stat-box payment">
+    <div class="stat-icon">💰</div>
+    <div class="stat-val payment">₹{{ payment }}</div>
+    <div class="stat-lbl">Today's Earnings (₹20 per delivery)</div>
+  </div>
+</div>
+
+{% if stops %}
+<div class="section">
+  <div class="section-title">Delivery Log</div>
+  {% for stop in stops %}
+  <div class="stop-row {{ stop.status }}">
+    <div class="stop-row-icon">
+      {% if stop.status == 'completed' %}✅{% elif stop.status == 'failed' %}❌{% else %}⏳{% endif %}
+    </div>
+    <div class="stop-row-info">
+      <div class="stop-row-name">{{ stop.location_name[:50] }}{% if stop.location_name|length > 50 %}…{% endif %}</div>
+      {% if stop.reason %}
+      <div class="stop-row-reason">↳ {{ stop.reason }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="btn-row">
+  <button class="btn-secondary" onclick="window.location.href='/map'">🗺 Back to Map</button>
+  <button class="btn-primary" onclick="window.location.href='/settings'">⚙️ Settings</button>
+</div>
+
+<button class="finish-btn" onclick="finishRide()">✅ Finish Today's Ride</button>
+
+<script>
+async function finishRide() {
+  if (!confirm('Mark this ride as complete? You can start a new ride tomorrow.')) return;
+  await fetch('/finish_ride',{method:'POST'});
+  window.location.href='/dashboard';
+}
+</script>
+<div style="text-align:center;color:#444;font-size:12px;padding:16px 0 4px">Made with ❤️ in India 🇮🇳</div>
+</body>
+</html>
