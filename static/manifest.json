@@ -1,0 +1,14 @@
+{
+  "name": "DeliverX",
+  "short_name": "DeliverX",
+  "description": "Smart Route Delivery App",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#ff6b35",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
