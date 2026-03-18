@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Map – DeliverX</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0f0f1a; font-family:'Segoe UI',sans-serif; color:#fff; height:100vh; display:flex; flex-direction:column; }
+.topbar { background:#181825; padding:13px 16px; border-bottom:1px solid #2a2a3a; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+.topbar h2 { font-size:16px; font-weight:700; }
+.back-btn { color:#ff6b35; text-decoration:none; font-size:14px; font-weight:600; }
+
+/* Map mode switcher */
+.map-controls { position:absolute; top:70px; right:10px; z-index:1000; display:flex; flex-direction:column; gap:6px; }
+.map-mode-btn { background:#181825cc; border:1.5px solid #2a2a3a; color:#fff; padding:7px 12px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; backdrop-filter:blur(4px); transition:all 0.2s; white-space:nowrap; }
+.map-mode-btn.active { border-color:#ff6b35; color:#ff6b35; background:#1a0f05cc; }
+
+#map { flex:1; position:relative; }
+
+.bottom-panel { background:#181825; border-top:1px solid #2a2a3a; padding:10px 14px; flex-shrink:0; }
+.route-stats { display:flex; gap:6px; margin-bottom:8px; }
+.rstat { flex:1; background:#0f0f1a; border-radius:10px; padding:7px; text-align:center; border:1px solid #2a2a3a; }
+.rstat span { font-size:9px; color:#666; display:block; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+.rstat strong { font-size:16px; font-weight:800; }
+.stop-scroll { display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; scrollbar-width:none; }
+.stop-scroll::-webkit-scrollbar { display:none; }
+.stop-chip { min-width:130px; background:#0f0f1a; border-radius:12px; padding:9px 11px; border:2px solid #2a2a3a; cursor:pointer; flex-shrink:0; transition:all 0.2s; }
+.stop-chip.completed { border-color:#2ed573; background:#0a1a0f; }
+.stop-chip.failed { border-color:#ff4757; background:#1a0a0a; }
+.stop-chip.pending:active { border-color:#ff6b35; }
+.chip-num { font-size:9px; color:#666; font-weight:700; letter-spacing:1px; }
+.chip-name { font-size:11px; color:#ddd; margin-top:2px; line-height:1.3; }
+.chip-st { font-size:10px; margin-top:3px; font-weight:700; }
+.s-pending{color:#888} .s-completed{color:#2ed573} .s-failed{color:#ff4757}
+
+/* Modal */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,0.78); z-index:3000; display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity 0.25s; }
+.overlay.show { opacity:1; pointer-events:all; }
+.modal { background:#181825; border-radius:24px 24px 0 0; width:100%; padding:0 0 44px; transform:translateY(100%); transition:transform 0.3s cubic-bezier(.4,0,.2,1); max-height:88vh; overflow-y:auto; }
+.overlay.show .modal { transform:translateY(0); }
+.modal-handle { width:38px; height:4px; background:#333; border-radius:2px; margin:14px auto 0; }
+.modal-hdr { padding:14px 20px 0; }
+.m-num { font-size:10px; color:#ff6b35; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
+.m-name { font-size:17px; font-weight:800; margin-top:4px; line-height:1.3; }
+.m-original { font-size:12px; color:#aaa; margin-top:3px; }
+.m-full { font-size:12px; color:#666; margin-top:4px; line-height:1.5; padding-bottom:12px; border-bottom:1px solid #2a2a3a; }
+.m-sec { padding:12px 20px 0; }
+.m-sec label { font-size:10px; color:#666; font-weight:700; letter-spacing:1px; text-transform:uppercase; display:block; margin-bottom:7px; }
+.remark-inp { width:100%; background:#0f0f1a; border:1.5px solid #2a2a3a; border-radius:12px; color:#fff; padding:11px 13px; font-size:13px; resize:none; outline:none; font-family:'Segoe UI',sans-serif; }
+.remark-inp:focus { border-color:#ff6b35; }
+.action-btns { display:flex; gap:10px; padding:14px 20px 0; }
+.btn-deliver { flex:1; padding:15px; border:none; border-radius:14px; cursor:pointer; font-size:15px; font-weight:800; background:linear-gradient(135deg,#2ed573,#1abc9c); color:#fff; }
+.btn-fail { flex:1; padding:15px; border:none; border-radius:14px; cursor:pointer; font-size:15px; font-weight:800; background:linear-gradient(135deg,#ff4757,#ff3030); color:#fff; }
+.reason-sec { padding:12px 20px 0; display:none; }
+.reason-sec label { font-size:10px; color:#ff4757; font-weight:700; letter-spacing:1px; text-transform:uppercase; display:block; margin-bottom:7px; }
+.r-chips { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:9px; }
+.r-chip { padding:6px 12px; background:#0f0f1a; border:1.5px solid #2a2a3a; border-radius:20px; font-size:12px; color:#aaa; cursor:pointer; }
+.r-chip.sel { border-color:#ff4757; color:#ff4757; background:#2a0a0a; }
+.btn-sub-fail { width:100%; padding:13px; background:#ff4757; color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; margin-top:4px; }
+.cancel-btn { width:100%; padding:11px; background:none; color:#555; border:none; font-size:14px; cursor:pointer; margin-top:8px; }
+.done-badge { padding:24px 20px; text-align:center; }
+.done-badge .big-i { font-size:52px; margin-bottom:10px; }
+.done-badge h3 { font-size:18px; font-weight:700; }
+.done-badge p { color:#666; font-size:13px; margin-top:6px; }
+
+/* Completion popup */
+.completion-popup { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:4000; display:flex; align-items:center; justify-content:center; flex-direction:column; opacity:0; pointer-events:none; transition:opacity 0.3s; padding:20px; }
+.completion-popup.show { opacity:1; pointer-events:all; }
+.cp-box { background:#181825; border-radius:24px; padding:36px 28px; text-align:center; border:2px solid #2ed573; max-width:320px; width:100%; }
+.cp-box.fail-box { border-color:#ff4757; }
+.cp-icon { font-size:64px; margin-bottom:16px; }
+.cp-title { font-size:22px; font-weight:900; margin-bottom:8px; }
+.cp-msg { color:#888; font-size:14px; line-height:1.5; margin-bottom:24px; }
+.cp-btn { width:100%; padding:14px; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; background:linear-gradient(135deg,#ff6b35,#ff9500); color:#fff; }
+
+.made-in-india { text-align:center; color:#333; font-size:11px; padding:6px 0; flex-shrink:0; }
+</style>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#ff6b35">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/dashboard" class="back-btn">← Back</a>
+  <h2>🗺 Live Route</h2>
+  <a href="/reward" style="color:#ffa502;font-size:14px;font-weight:600;text-decoration:none;">Rewards →</a>
+</div>
+
+<div id="map">
+  <!-- Map layer switcher -->
+  <div class="map-controls">
+    <button class="map-mode-btn active" id="btnNormal" onclick="switchLayer('normal')">Normal</button>
+    <button class="map-mode-btn" id="btnDark" onclick="switchLayer('dark')">Dark</button>
+    <button class="map-mode-btn" id="btnSat" onclick="switchLayer('satellite')">Satellite</button>
+  </div>
+</div>
+
+<div class="bottom-panel">
+  <div id="routeInfo" style="display:none;font-size:12px;color:#ffa502;font-weight:700;text-align:center;padding:4px 0 8px;letter-spacing:0.5px;"></div>
+  <div class="route-stats">
+    <div class="rstat"><span>Total</span><strong id="sTotal">0</strong></div>
+    <div class="rstat"><span>Done</span><strong id="sDone" style="color:#2ed573">0</strong></div>
+    <div class="rstat"><span>Failed</span><strong id="sFail" style="color:#ff4757">0</strong></div>
+    <div class="rstat"><span>Earned</span><strong id="sEarn" style="color:#ffa502">₹0</strong></div>
+  </div>
+  <div class="stop-scroll" id="stopScroll"></div>
+</div>
+
+<!-- Delivery Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="pendingView">
+      <div class="modal-hdr">
+        <div class="m-num" id="mNum">STOP 1</div>
+        <div class="m-name" id="mName"></div>
+        <div class="m-original" id="mOriginal"></div>
+        <div class="m-full" id="mFull"></div>
+      </div>
+      <div class="m-sec">
+        <label>📝 Remark (optional)</label>
+        <textarea class="remark-inp" id="remarkInp" rows="2" placeholder="e.g. Leave at door, call before arriving..."></textarea>
+      </div>
+      <div class="action-btns">
+        <button class="btn-deliver" onclick="markDelivered()">✅ Delivered</button>
+        <button class="btn-fail" onclick="showReasons()">❌ Failed</button>
+      </div>
+      <div class="reason-sec" id="reasonSec">
+        <label>Reason for failure</label>
+        <div class="r-chips">
+          <div class="r-chip" onclick="pickReason(this,'Customer absent')">Customer absent</div>
+          <div class="r-chip" onclick="pickReason(this,'Wrong address')">Wrong address</div>
+          <div class="r-chip" onclick="pickReason(this,'Door locked')">Door locked</div>
+          <div class="r-chip" onclick="pickReason(this,'Refused delivery')">Refused</div>
+          <div class="r-chip" onclick="pickReason(this,'Cannot locate')">Cannot locate</div>
+          <div class="r-chip" onclick="pickReason(this,'Not reachable')">Not reachable</div>
+        </div>
+        <textarea class="remark-inp" id="reasonInp" rows="2" placeholder="Or type custom reason..."></textarea>
+        <button class="btn-sub-fail" onclick="markFailed()">Submit Failed Delivery</button>
+      </div>
+      <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+    </div>
+    <div id="doneView" style="display:none">
+      <div class="done-badge">
+        <div class="big-i" id="doneIcon">✅</div>
+        <h3 id="doneTitle">Delivered</h3>
+        <p id="doneRemark"></p>
+      </div>
+      <button class="cancel-btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Completion Popup -->
+<div class="completion-popup" id="compPopup">
+  <div class="cp-box" id="cpBox">
+    <div class="cp-icon" id="cpIcon">🎉</div>
+    <div class="cp-title" id="cpTitle">All Done!</div>
+    <div class="cp-msg" id="cpMsg">All stops completed.</div>
+    <button class="cp-btn" id="cpBtn" onclick="document.getElementById('compPopup').classList.remove('show')">View Rewards →</button>
+  </div>
+</div>
+
+<div class="made-in-india">Made with ❤️ in India 🇮🇳</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let map, stops=[], activeStop=null, selectedReason='';
+let markerMap={}, currentLayer=null;
+
+// Map tile layers
+const layers = {
+  normal: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© Kartik', maxZoom:19}),
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {attribution:'© Venky', maxZoom:19}),
+  satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution:'© Vamshi', maxZoom:19})
+};
+
+function switchLayer(name) {
+  if (currentLayer) map.removeLayer(currentLayer);
+  currentLayer = layers[name];
+  currentLayer.addTo(map);
+  currentLayer.bringToBack();
+  document.querySelectorAll('.map-mode-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
+}
+
+const icons = {
+  warehouse: L.divIcon({className:'', iconSize:[44,44], iconAnchor:[22,22],
+    html:`<div style="background:#ff6b35;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:3px solid #fff;box-shadow:0 4px 20px rgba(255,107,53,0.5)">🏭</div>`}),
+  pending:(n)=>L.divIcon({className:'', iconSize:[38,38], iconAnchor:[19,19],
+    html:`<div style="background:#3742fa;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;border:3px solid #fff;box-shadow:0 4px 14px rgba(55,66,250,0.5)">${n}</div>`}),
+  completed:L.divIcon({className:'', iconSize:[38,38], iconAnchor:[19,19],
+    html:`<div style="background:#2ed573;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 4px 14px rgba(46,213,115,0.5)">✅</div>`}),
+  failed:L.divIcon({className:'', iconSize:[38,38], iconAnchor:[19,19],
+    html:`<div style="background:#ff4757;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 4px 14px rgba(255,71,87,0.5)">❌</div>`}),
+  me:L.divIcon({className:'', iconSize:[18,18], iconAnchor:[9,9],
+    html:`<div style="background:#5352ed;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 5px rgba(83,82,237,0.25)"></div>`})
+};
+
+let routeLayer = null;
+
+async function drawRoadRoute(ride, stops) {
+  // Build coordinate list: warehouse → all stops → back to warehouse
+  const waypoints = [[ride.warehouse_lon, ride.warehouse_lat]];
+  stops.forEach(s => waypoints.push([s.longitude, s.latitude]));
+  waypoints.push([ride.warehouse_lon, ride.warehouse_lat]); // return
+
+  if(waypoints.length < 2) return;
+
+  try {
+    const res = await fetch('/get_route', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({coordinates: waypoints})
+    });
+    const data = await res.json();
+    if(!data.success) throw new Error('Route failed');
+
+    // Remove old route
+    if(routeLayer) map.removeLayer(routeLayer);
+
+    if(data.source === 'ors') {
+      // Real road geometry — convert [lon,lat] to [lat,lon] for Leaflet
+      const latlngs = data.geometry.map(c => [c[1], c[0]]);
+      routeLayer = L.polyline(latlngs, {color:'#ff6b35', weight:4, opacity:0.8}).addTo(map);
+      // Show distance/time info
+      if(data.distance_km > 0) {
+        document.getElementById('routeInfo').textContent = `🛣 ${data.distance_km} km  ⏱ ${data.duration_min} min`;
+        document.getElementById('routeInfo').style.display = 'block';
+      }
+    } else {
+      // Fallback straight lines
+      const coords_ll = waypoints.map(c => [c[1], c[0]]);
+      routeLayer = L.polyline(coords_ll, {color:'#ff6b35', weight:3, opacity:0.6, dashArray:'8,6'}).addTo(map);
+    }
+  } catch(e) {
+    // Fallback: draw straight dashed line
+    const coords_ll = waypoints.map(c => [c[1], c[0]]);
+    if(routeLayer) map.removeLayer(routeLayer);
+    routeLayer = L.polyline(coords_ll, {color:'#ff6b35', weight:3, opacity:0.6, dashArray:'8,6'}).addTo(map);
+  }
+}
+
+async function init() {
+  map = L.map('map', {zoomControl:false}).setView([20.5937,78.9629],5);
+  switchLayer('normal');
+  L.control.zoom({position:'topright'}).addTo(map);
+
+  const res = await fetch('/map_data');
+  const data = await res.json();
+  if (!data.success) { showPopup('⚠️','No Active Ride','Set warehouse and add stops first.','Go to Dashboard',()=>window.location.href='/dashboard'); return; }
+
+  const ride=data.ride; stops=data.stops;
+  L.marker([ride.warehouse_lat,ride.warehouse_lon],{icon:icons.warehouse}).addTo(map)
+   .bindPopup(`<b>🏭 ${ride.warehouse_id||'Warehouse'}</b><br>${ride.warehouse_display||ride.warehouse_location}<br><small>🚗 ${ride.vehicle_number||''} ${ride.vehicle_type||''}</small>`);
+
+  const coords=[[ride.warehouse_lat,ride.warehouse_lon]];
+  stops.forEach((s,i)=>{
+    coords.push([s.latitude,s.longitude]);
+    const icon=s.status==='completed'?icons.completed:s.status==='failed'?icons.failed:icons.pending(i+1);
+    const m=L.marker([s.latitude,s.longitude],{icon}).addTo(map);
+    m.on('click',()=>openModal(s,i));
+    markerMap[s.id]=m;
+  });
+
+  // Add return-to-warehouse marker at end
+  if(stops.length>0){
+    const retM = L.marker([ride.warehouse_lat,ride.warehouse_lon],{
+      icon: L.divIcon({className:'', iconSize:[32,32], iconAnchor:[16,16],
+        html:`<div style="background:#ff9500;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid #fff;box-shadow:0 4px 12px rgba(255,149,0,0.5)">🏠</div>`})
+    }).addTo(map);
+    retM.bindPopup('<b>🏠 Return to Warehouse</b>');
+  }
+
+  // Draw real road route
+  await drawRoadRoute(ride, stops);
+  if(coords.length>1) map.fitBounds(coords,{padding:[50,50]});
+
+  renderChips(); updateStats();
+
+  if(navigator.geolocation){
+    let myM=null;
+    navigator.geolocation.watchPosition(p=>{
+      const ll=[p.coords.latitude,p.coords.longitude];
+      if(myM) myM.setLatLng(ll);
+      else myM=L.marker(ll,{icon:icons.me}).addTo(map).bindPopup('📍 You');
+    },null,{enableHighAccuracy:true,maximumAge:5000});
+  }
+}
+
+function renderChips(){
+  document.getElementById('stopScroll').innerHTML=stops.map((s,i)=>`
+    <div class="stop-chip ${s.status}" onclick="flyTo(${i})">
+      <div class="chip-num">STOP ${i+1}</div>
+      <div class="chip-name">${(s.display_name||s.location_name).substring(0,32)}${(s.display_name||s.location_name).length>32?'…':''}</div>
+      <div class="chip-st s-${s.status}">${s.status==='pending'?'⏳ Pending':s.status==='completed'?'✅ Done':'❌ Failed'}</div>
+    </div>`).join('');
+}
+
+function flyTo(i){
+  const s=stops[i];
+  map.flyTo([s.latitude,s.longitude],17,{duration:0.8});
+  setTimeout(()=>openModal(s,i),900);
+}
+
+function updateStats(){
+  const done=stops.filter(s=>s.status==='completed').length;
+  const fail=stops.filter(s=>s.status==='failed').length;
+  document.getElementById('sTotal').textContent=stops.length;
+  document.getElementById('sDone').textContent=done;
+  document.getElementById('sFail').textContent=fail;
+  document.getElementById('sEarn').textContent='₹'+(done*20);
+}
+
+function openModal(stop,idx){
+  activeStop=stop; selectedReason='';
+  if(stop.status!=='pending'){
+    document.getElementById('pendingView').style.display='none';
+    document.getElementById('doneView').style.display='block';
+    document.getElementById('doneIcon').textContent=stop.status==='completed'?'✅':'❌';
+    document.getElementById('doneTitle').textContent=stop.status==='completed'?'Delivered':'Failed Delivery';
+    const info=[stop.remark,stop.reason].filter(Boolean).join(' — ');
+    document.getElementById('doneRemark').textContent=info||'No additional info';
+  } else {
+    document.getElementById('pendingView').style.display='block';
+    document.getElementById('doneView').style.display='none';
+    document.getElementById('reasonSec').style.display='none';
+    document.getElementById('remarkInp').value='';
+    document.getElementById('reasonInp').value='';
+    document.querySelectorAll('.r-chip').forEach(c=>c.classList.remove('sel'));
+    document.getElementById('mNum').textContent=`STOP ${(idx||0)+1} OF ${stops.length}`;
+    document.getElementById('mName').textContent=stop.display_name||stop.location_name;
+    document.getElementById('mOriginal').textContent=stop.original_input?`📝 As entered: "${stop.original_input}"`:'';
+    document.getElementById('mFull').textContent=stop.full_address||stop.location_name;
+  }
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); activeStop=null; }
+function showReasons(){ document.getElementById('reasonSec').style.display='block'; document.getElementById('reasonSec').scrollIntoView({behavior:'smooth'}); }
+function pickReason(el,r){ document.querySelectorAll('.r-chip').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); selectedReason=r; }
+
+async function markDelivered(){ if(!activeStop) return; await postAction('completed','',document.getElementById('remarkInp').value); }
+async function markFailed(){
+  if(!activeStop) return;
+  const reason=selectedReason||document.getElementById('reasonInp').value||'Not specified';
+  await postAction('failed',reason,document.getElementById('remarkInp').value);
+}
+
+async function postAction(status,reason,remark){
+  const res=await fetch('/complete_stop',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({stop_id:activeStop.id,status,reason,remark})});
+  const data=await res.json();
+  if(data.success){
+    const stop=stops.find(s=>s.id===activeStop.id);
+    stop.status=status; stop.reason=reason; stop.remark=remark;
+    markerMap[stop.id].setIcon(status==='completed'?icons.completed:icons.failed);
+    closeModal(); renderChips(); updateStats();
+    // Check all done
+    const pending=stops.filter(s=>s.status==='pending');
+    if(pending.length===0){
+      const done=stops.filter(s=>s.status==='completed').length;
+      showPopup('🎉','All Stops Done!',`You completed ${done} of ${stops.length} deliveries.\nEarned ₹${done*20} today!`,'View Rewards →',()=>window.location.href='/reward');
+    }
+  }
+}
+
+function showPopup(icon,title,msg,btnText,onBtn){
+  document.getElementById('cpIcon').textContent=icon;
+  document.getElementById('cpTitle').textContent=title;
+  document.getElementById('cpMsg').textContent=msg;
+  document.getElementById('cpBtn').textContent=btnText;
+  document.getElementById('cpBtn').onclick=onBtn;
+  document.getElementById('compPopup').classList.add('show');
+}
+
+document.getElementById('overlay').addEventListener('click',function(e){ if(e.target===this) closeModal(); });
+init();
+</script>
+</body>
+</html>

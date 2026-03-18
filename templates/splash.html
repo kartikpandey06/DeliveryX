@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>DeliverX</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #0f0f1a;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100vh; overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  .logo-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    animation: fadeUp 1s ease forwards;
+    opacity: 0; transform: translateY(30px);
+  }
+  @keyframes fadeUp {
+    to { opacity:1; transform:translateY(0); }
+  }
+  .icon {
+    width: 90px; height: 90px;
+    background: linear-gradient(135deg, #ff6b35, #ff9500);
+    border-radius: 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 42px;
+    box-shadow: 0 20px 60px rgba(255,107,53,0.4);
+    margin-bottom: 20px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 20px 60px rgba(255,107,53,0.4); }
+    50% { box-shadow: 0 20px 80px rgba(255,107,53,0.7); }
+  }
+  h1 {
+    color: #fff;
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -1px;
+  }
+  h1 span { color: #ff6b35; }
+  p {
+    color: #888;
+    margin-top: 8px;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .loader {
+    margin-top: 60px;
+    width: 180px; height: 3px;
+    background: #222;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .loader-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6b35, #ff9500);
+    border-radius: 10px;
+    animation: load 2s ease forwards;
+    width: 0%;
+  }
+  @keyframes load { to { width: 100%; } }
+</style>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#ff6b35">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+  <div class="logo-wrap">
+    <img src="/static/icon.png" style="width:90px;height:90px;border-radius:24px;box-shadow:0 20px 60px rgba(255,107,53,0.4);margin-bottom:20px;animation:pulse 2s infinite;">
+    <h1>Deliver<span>X</span></h1>
+    <p>Smart Route Delivery</p>
+  </div>
+  <div class="loader"><div class="loader-bar"></div></div>
+  <script>
+    setTimeout(() => { window.location.href = '/login'; }, 2500);
+  </script>
+<div style="text-align:center;color:#444;font-size:12px;padding:16px 0 4px">Made with ❤️ in India 🇮🇳</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').then(() => console.log('SW registered'));
+}
+</script>
+</body>
+</html>

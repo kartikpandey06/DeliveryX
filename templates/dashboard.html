@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dashboard – DeliverX</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0f0f1a; min-height:100vh; font-family:'Segoe UI',sans-serif; color:#fff; padding-bottom:30px; }
+.topbar { background:#181825; padding:16px 20px; border-bottom:1px solid #2a2a3a; display:flex; justify-content:space-between; align-items:center; }
+.topbar h2 { font-size:19px; font-weight:800; }
+.topbar h2 span { color:#ff6b35; }
+.logout { color:#666; font-size:13px; text-decoration:none; padding:6px 12px; border:1px solid #333; border-radius:8px; }
+.section { padding:16px 16px 0; }
+.section-title { color:#aaa; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
+.card { background:#181825; border-radius:16px; padding:16px; border:1px solid #2a2a3a; margin-bottom:14px; }
+
+/* Stats */
+.stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+.stat-box { background:#181825; border-radius:14px; padding:14px 10px; border:1px solid #2a2a3a; text-align:center; }
+.stat-num { font-size:20px; font-weight:800; color:#ff6b35; }
+.stat-lbl { font-size:10px; color:#666; margin-top:3px; font-weight:600; text-transform:uppercase; }
+.lifetime-box { background:linear-gradient(135deg,#1a1500,#2a2000); border:1px solid #ffa502; border-radius:14px; padding:14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; }
+.lifetime-box .lbl { font-size:11px; color:#ffa502; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+.lifetime-box .val { font-size:26px; font-weight:900; color:#ffa502; }
+
+/* Warehouse picker */
+.wh-search-wrap { position:relative; }
+.wh-dropdown { position:absolute; top:100%; left:0; right:0; background:#1e1e2e; border:1.5px solid #ff6b35; border-radius:12px; z-index:100; max-height:220px; overflow-y:auto; display:none; margin-top:4px; }
+.wh-item { padding:12px 14px; cursor:pointer; border-bottom:1px solid #2a2a3a; transition:background 0.15s; }
+.wh-item:last-child { border-bottom:none; }
+.wh-item:hover, .wh-item:active { background:#2a2a3a; }
+.wh-item-id { font-size:10px; color:#ff6b35; font-weight:700; letter-spacing:1px; }
+.wh-item-name { font-size:14px; color:#fff; font-weight:600; margin-top:2px; }
+.wh-item-addr { font-size:11px; color:#666; margin-top:1px; }
+.wh-set-info { background:#0f0f1a; border-radius:10px; padding:10px 12px; margin-top:8px; border:1px solid #2a2a3a; display:none; }
+.wh-set-info .wh-badge { font-size:10px; color:#ff6b35; font-weight:700; letter-spacing:1px; }
+.wh-set-info .wh-name { font-size:13px; color:#ddd; margin-top:2px; }
+
+/* Vehicle row */
+.vehicle-row { display:flex; gap:8px; margin-top:10px; }
+.vehicle-row input { flex:1; }
+.vehicle-type-btns { display:flex; gap:6px; margin-top:8px; }
+.vtype-btn { flex:1; padding:10px 6px; background:#0f0f1a; border:1.5px solid #2a2a3a; border-radius:10px; color:#888; font-size:12px; font-weight:600; cursor:pointer; text-align:center; transition:all 0.2s; }
+.vtype-btn.active { border-color:#ff6b35; color:#ff6b35; background:#1a0f05; }
+
+/* Inputs */
+input, textarea {
+  width:100%; padding:13px 14px;
+  background:#0f0f1a; border:1.5px solid #2a2a3a;
+  border-radius:12px; color:#fff; font-size:14px;
+  outline:none; transition:border-color 0.2s; font-family:'Segoe UI',sans-serif;
+}
+input:focus, textarea:focus { border-color:#ff6b35; }
+input::placeholder { color:#444; }
+
+.btn-orange { padding:13px 16px; background:linear-gradient(135deg,#ff6b35,#ff9500); color:#fff; border:none; border-radius:12px; font-weight:700; cursor:pointer; font-size:14px; white-space:nowrap; }
+.btn-green { padding:13px 16px; background:linear-gradient(135deg,#2ed573,#1abc9c); color:#fff; border:none; border-radius:12px; font-weight:700; cursor:pointer; font-size:14px; white-space:nowrap; }
+.row { display:flex; gap:8px; margin-top:10px; }
+
+/* Stop list */
+.stop-list { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+.stop-item { background:#0f0f1a; border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:10px; border:1px solid #2a2a3a; }
+.stop-num { width:28px; height:28px; background:#3742fa; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+.stop-info { flex:1; min-width:0; }
+.stop-name { font-size:13px; color:#ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stop-addr { font-size:11px; color:#666; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.badge { font-size:10px; font-weight:700; padding:3px 7px; border-radius:6px; text-transform:uppercase; flex-shrink:0; }
+.badge-pending { background:#2a2a3a; color:#888; }
+.badge-completed { background:#1a3a2a; color:#2ed573; }
+.badge-failed { background:#3a1a1a; color:#ff4757; }
+.stop-del { color:#ff4757; background:none; border:none; cursor:pointer; font-size:22px; flex-shrink:0; padding:2px 4px; }
+.empty-state { text-align:center; color:#444; padding:28px; font-size:14px; }
+
+/* Bottom buttons */
+.bottom-btns { display:flex; gap:8px; margin-top:14px; }
+.full-btn { flex:1; padding:14px; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; }
+.map-btn { background:linear-gradient(135deg,#3742fa,#5352ed); color:#fff; }
+.reward-btn { background:linear-gradient(135deg,#ffa502,#ff6b35); color:#fff; }
+
+/* Toast */
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#2ed573; color:#000; padding:12px 22px; border-radius:12px; font-weight:700; font-size:13px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:999; white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,0.4); }
+.toast.show { opacity:1; }
+.toast.err { background:#ff4757; color:#fff; }
+.toast.info { background:#3742fa; color:#fff; }
+
+/* Progress */
+.progress-bar { height:3px; background:#2a2a3a; border-radius:2px; margin-top:10px; }
+.progress-fill { height:100%; background:linear-gradient(90deg,#2ed573,#1abc9c); border-radius:2px; transition:width 0.5s; }
+
+.made-in-india { text-align:center; color:#444; font-size:12px; padding:20px 0 4px; }
+</style>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#ff6b35">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+<div class="topbar">
+  <h2>Hi, <span>{{ name }}</span> 👋</h2>
+  <a href="/logout" class="logout">Logout</a>
+</div>
+
+<div class="section">
+  <!-- Lifetime Earnings -->
+  <div class="lifetime-box">
+    <div>
+      <div class="lbl">🏆 Lifetime Earnings</div>
+      <div class="val">₹{{ lifetime }}</div>
+    </div>
+    <div style="font-size:36px">💰</div>
+  </div>
+
+  <!-- Today Stats -->
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-num" id="statTotal">{{ stops|length }}</div><div class="stat-lbl">Stops</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:#2ed573" id="statDone">{{ stops|selectattr('status','eq','completed')|list|length }}</div><div class="stat-lbl">Done</div></div>
+    <div class="stat-box"><div class="stat-num">₹{{ stops|selectattr('status','eq','completed')|list|length * 20 }}</div><div class="stat-lbl">Today</div></div>
+  </div>
+
+  <!-- Warehouse -->
+  <div class="section-title">🏭 Warehouse / Starting Point</div>
+  <div class="card">
+    <div class="wh-search-wrap">
+      <input type="text" id="whInput" placeholder="Search warehouse city or name..."
+        oninput="searchWarehouses(this.value)"
+        value="{{ ride.warehouse_location if ride else '' }}">
+      <div class="wh-dropdown" id="whDropdown"></div>
+    </div>
+    <div class="wh-set-info" id="whSetInfo" {% if ride %}style="display:block"{% endif %}>
+      <div class="wh-badge" id="whBadge">{{ ride.warehouse_id if ride else '' }}</div>
+      <div class="wh-name" id="whName">{{ ride.warehouse_display if ride else '' }}</div>
+    </div>
+    <!-- Vehicle -->
+    <div class="vehicle-row" style="margin-top:10px">
+      <input type="text" id="vehicleNum" placeholder="Vehicle No. e.g. HR26-AB-1234"
+        value="{{ ride.vehicle_number if ride else '' }}">
+    </div>
+    <div class="vehicle-type-btns">
+      <div class="vtype-btn {% if ride and ride.vehicle_type == 'Bike' %}active{% endif %}" onclick="selectVehicle(this,'Bike')">🛵 Bike</div>
+      <div class="vtype-btn {% if ride and ride.vehicle_type == 'Mini Truck' %}active{% endif %}" onclick="selectVehicle(this,'Mini Truck')">🚚 Mini Truck</div>
+      <div class="vtype-btn {% if ride and ride.vehicle_type == 'Auto' %}active{% endif %}" onclick="selectVehicle(this,'Auto')">🛺 Auto</div>
+    </div>
+    <button class="btn-orange" style="width:100%;margin-top:10px" onclick="setWarehouse()">Set Warehouse & Vehicle</button>
+  </div>
+
+  <!-- Delivery Stops -->
+  <div class="section-title">📦 Delivery Stops</div>
+  <div class="card">
+    <!-- Address input with live suggestions -->
+    <div style="position:relative;" id="stopInputWrap">
+      <div class="row">
+        <input type="text" id="stopInput" placeholder="Type area, street, city..."
+          oninput="onStopType(this.value)"
+          onkeydown="handleStopKey(event)"
+          autocomplete="off">
+        <button class="btn-green" onclick="addStop()">Add</button>
+      </div>
+      <!-- Suggestions dropdown -->
+      <div id="stopSuggest" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1e1e2e;border:1.5px solid #2ed573;border-radius:12px;z-index:200;margin-top:4px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.4);">
+      </div>
+    </div>
+    <div class="stop-list" id="stopList">
+      {% if stops %}
+        {% for stop in stops %}
+        <div class="stop-item" id="si_{{ stop.id }}">
+          <div class="stop-num">{{ loop.index }}</div>
+          <div class="stop-info">
+            <div class="stop-name">{{ stop.display_name or stop.location_name }}</div>
+            <div class="stop-addr">{{ stop.full_address[:60] if stop.full_address else '' }}</div>
+          </div>
+          <span class="badge badge-{{ stop.status }}">{{ stop.status }}</span>
+          {% if stop.status == 'pending' %}
+          <button class="stop-del" onclick="removeStop('{{ stop.id }}')">×</button>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" id="emptyState">No stops added yet.<br>Enter a delivery address above.</div>
+      {% endif %}
+    </div>
+    {% if stops %}
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"
+        style="width:{{ (stops|selectattr('status','eq','completed')|list|length / stops|length * 100)|int if stops else 0 }}%">
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="bottom-btns">
+    <button class="full-btn map-btn" onclick="goToMap()">🗺 Optimize & Map</button>
+    <button class="full-btn reward-btn" onclick="window.location.href='/reward'">🏆 Rewards</button>
+  </div>
+  <button onclick="window.location.href='/settings'" style="width:100%;margin-top:8px;padding:12px;background:#181825;color:#666;border:1px solid #2a2a3a;border-radius:12px;font-size:14px;cursor:pointer;">⚙️ Settings & Records</button>
+</div>
+
+<div class="made-in-india">Made with ❤️ in India 🇮🇳</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let warehouseSet = {{ 'true' if ride else 'false' }};
+let selectedWarehouse = {{ ride | tojson if ride else 'null' }};
+let selectedVehicleType = '{{ ride.vehicle_type if ride else "" }}';
+let stopCount = {{ stops | length }};
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type?' '+type:'');
+  setTimeout(() => t.className='toast', 2800);
+}
+
+// Warehouse search
+let whTimer;
+async function searchWarehouses(q) {
+  clearTimeout(whTimer);
+  if (!q.trim()) { document.getElementById('whDropdown').style.display='none'; return; }
+  whTimer = setTimeout(async () => {
+    const res = await fetch(`/warehouses?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    const dd = document.getElementById('whDropdown');
+    if (!data.length) { dd.style.display='none'; return; }
+    dd.innerHTML = data.map(w => `
+      <div class="wh-item" onclick="selectWarehouse(${JSON.stringify(w).replace(/"/g,'&quot;')})">
+        <div class="wh-item-id">${w.id}</div>
+        <div class="wh-item-name">${w.name}</div>
+        <div class="wh-item-addr">${w.address}</div>
+      </div>`).join('');
+    dd.style.display='block';
+  }, 300);
+}
+
+function selectWarehouse(w) {
+  selectedWarehouse = w;
+  document.getElementById('whInput').value = w.name + ' — ' + w.city;
+  document.getElementById('whDropdown').style.display='none';
+  document.getElementById('whSetInfo').style.display='block';
+  document.getElementById('whBadge').textContent = w.id;
+  document.getElementById('whName').textContent = w.address;
+}
+
+function selectVehicle(el, type) {
+  document.querySelectorAll('.vtype-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedVehicleType = type;
+}
+
+async function setWarehouse() {
+  if (!selectedWarehouse) {
+    // Try geocoding what they typed
+    const addr = document.getElementById('whInput').value.trim();
+    if (!addr) { showToast('Search and select a warehouse', 'err'); return; }
+    showToast('🔍 Finding location...', 'info');
+    const geo = await fetch('/geocode', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({address:addr})});
+    const gd = await geo.json();
+    if (!gd.success) { showToast(gd.message, 'err'); return; }
+    selectedWarehouse = {id:'CUSTOM', name:addr, lat:gd.lat, lon:gd.lon, address:gd.full_display};
+  }
+  const vehicleNum = document.getElementById('vehicleNum').value.trim();
+  if (!vehicleNum) { showToast('Enter vehicle number', 'err'); return; }
+  if (!selectedVehicleType) { showToast('Select vehicle type', 'err'); return; }
+
+  const res = await fetch('/create_ride', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      warehouse: selectedWarehouse.name,
+      display: selectedWarehouse.address,
+      lat: selectedWarehouse.lat, lon: selectedWarehouse.lon,
+      warehouse_id: selectedWarehouse.id,
+      vehicle_number: vehicleNum,
+      vehicle_type: selectedVehicleType
+    })});
+  const data = await res.json();
+  if (data.success) {
+    warehouseSet = true;
+    document.getElementById('whSetInfo').style.display='block';
+    showToast('✅ Warehouse & vehicle set!');
+  }
+}
+
+async function addStop() {
+  if (!warehouseSet) { showToast('Set warehouse first!', 'err'); return; }
+  const addr = document.getElementById('stopInput').value.trim();
+  if (!addr) { showToast('Enter delivery address', 'err'); return; }
+  showToast('🔍 Locating address...', 'info');
+
+  const geo = await fetch('/geocode', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({address:addr})});
+  const gd = await geo.json();
+  if (!gd.success) { showToast(gd.message, 'err'); return; }
+
+  const res = await fetch('/add_stop', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name:addr, display:gd.display, full_address:gd.full_display, original_input:addr, lat:gd.lat, lon:gd.lon})});
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('stopInput').value='';
+    document.getElementById('emptyState') && (document.getElementById('emptyState').style.display='none');
+    stopCount = data.count;
+    document.getElementById('statTotal').textContent = stopCount;
+    const list = document.getElementById('stopList');
+    list.innerHTML += `
+      <div class="stop-item" id="si_new_${Date.now()}">
+        <div class="stop-num">${stopCount}</div>
+        <div class="stop-info">
+          <div class="stop-name">${gd.display}</div>
+          <div class="stop-addr">${(gd.full_display||'').substring(0,60)}</div>
+        </div>
+        <span class="badge badge-pending">pending</span>
+        <button class="stop-del" onclick="this.closest('.stop-item').remove()">×</button>
+      </div>`;
+    showToast('✅ ' + gd.display + ' added!');
+  } else {
+    showToast(data.message, 'err');
+  }
+}
+
+async function removeStop(id) {
+  await fetch(`/remove_stop/${id}`, {method:'DELETE'});
+  document.getElementById(`si_${id}`).remove();
+  showToast('Stop removed');
+}
+
+async function goToMap() {
+  const items = document.querySelectorAll('.stop-item');
+  if (!items.length) { showToast('Add at least one stop!', 'err'); return; }
+  if (!warehouseSet) { showToast('Set warehouse first!', 'err'); return; }
+  showToast('🧠 Optimizing route...', 'info');
+  await fetch('/optimize_route', {method:'POST'});
+  setTimeout(() => window.location.href='/map', 900);
+}
+
+// ── ADDRESS SUGGESTIONS ──────────────────────────────────────────────────────
+let suggestTimer = null;
+let selectedSuggestion = null;
+let activeSuggestIdx = -1;
+let currentSuggestions = [];
+
+async function onStopType(val) {
+  selectedSuggestion = null;
+  clearTimeout(suggestTimer);
+  if (val.length < 3) {
+    hideSuggest();
+    return;
+  }
+  suggestTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/suggest?q=${encodeURIComponent(val)}`);
+      const data = await res.json();
+      currentSuggestions = data;
+      activeSuggestIdx = -1;
+      showSuggest(data);
+    } catch(e) {}
+  }, 350);
+}
+
+function showSuggest(items) {
+  const dd = document.getElementById('stopSuggest');
+  if (!items.length) { hideSuggest(); return; }
+  dd.innerHTML = items.map((item, i) => `
+    <div class="suggest-item" id="si_${i}"
+      onclick="pickSuggestion(${i})"
+      onmouseenter="highlightSuggest(${i})"
+      style="padding:11px 14px;cursor:pointer;border-bottom:1px solid #2a2a3a;transition:background 0.15s;">
+      <div style="font-size:13px;color:#fff;font-weight:600">${item.display}</div>
+      <div style="font-size:11px;color:#666;margin-top:2px">${item.full.substring(0,60)}${item.full.length>60?'…':''}</div>
+    </div>`).join('');
+  dd.style.display = 'block';
+}
+
+function highlightSuggest(idx) {
+  document.querySelectorAll('.suggest-item').forEach((el,i) => {
+    el.style.background = i === idx ? '#2a2a3a' : 'transparent';
+  });
+  activeSuggestIdx = idx;
+}
+
+function handleStopKey(e) {
+  const items = document.querySelectorAll('.suggest-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    activeSuggestIdx = Math.min(activeSuggestIdx+1, items.length-1);
+    highlightSuggest(activeSuggestIdx);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    activeSuggestIdx = Math.max(activeSuggestIdx-1, 0);
+    highlightSuggest(activeSuggestIdx);
+  } else if (e.key === 'Enter') {
+    if (activeSuggestIdx >= 0 && currentSuggestions[activeSuggestIdx]) {
+      e.preventDefault();
+      pickSuggestion(activeSuggestIdx);
+    } else {
+      addStop();
+    }
+  } else if (e.key === 'Escape') {
+    hideSuggest();
+  }
+}
+
+function pickSuggestion(idx) {
+  const item = currentSuggestions[idx];
+  if (!item) return;
+  selectedSuggestion = item;
+  document.getElementById('stopInput').value = item.display;
+  hideSuggest();
+  // Auto-add immediately
+  addStopFromSuggestion(item);
+}
+
+async function addStopFromSuggestion(item) {
+  if (!warehouseSet) { showToast('Set warehouse first!', 'err'); return; }
+  const res = await fetch('/add_stop', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      name: item.display,
+      display: item.display,
+      full_address: item.full,
+      original_input: item.display,
+      lat: item.lat,
+      lon: item.lon
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('stopInput').value = '';
+    selectedSuggestion = null;
+    document.getElementById('emptyState') && (document.getElementById('emptyState').style.display='none');
+    stopCount = data.count;
+    document.getElementById('statTotal').textContent = stopCount;
+    const list = document.getElementById('stopList');
+    list.innerHTML += `
+      <div class="stop-item">
+        <div class="stop-num">${stopCount}</div>
+        <div class="stop-info">
+          <div class="stop-name">${item.display}</div>
+          <div class="stop-addr">${item.full.substring(0,60)}</div>
+        </div>
+        <span class="badge badge-pending">pending</span>
+        <button class="stop-del" onclick="this.closest('.stop-item').remove()">×</button>
+      </div>`;
+    showToast('✅ ' + item.display + ' added!');
+  } else {
+    showToast(data.message || 'Failed to add stop', 'err');
+  }
+}
+
+function hideSuggest() {
+  document.getElementById('stopSuggest').style.display = 'none';
+  activeSuggestIdx = -1;
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.wh-search-wrap'))
+    document.getElementById('whDropdown').style.display='none';
+});
+</script>
+</body>
+</html>

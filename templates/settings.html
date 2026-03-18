@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Settings – DeliverX</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0f0f1a; min-height:100vh; font-family:'Segoe UI',sans-serif; color:#fff; padding-bottom:30px; }
+.topbar { background:#181825; padding:16px 20px; border-bottom:1px solid #2a2a3a; display:flex; justify-content:space-between; align-items:center; }
+.topbar h2 { font-size:18px; font-weight:700; }
+.back-btn { color:#ff6b35; text-decoration:none; font-size:14px; font-weight:600; }
+.section { padding:16px; }
+.section-title { color:#aaa; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; margin-top:6px; }
+.setting-item { background:#181825; border-radius:14px; padding:16px; margin-bottom:8px; border:1px solid #2a2a3a; display:flex; align-items:center; justify-content:space-between; }
+.s-left { display:flex; align-items:center; gap:12px; }
+.s-icon { font-size:22px; }
+.s-info h3 { font-size:14px; font-weight:600; }
+.s-info p { color:#666; font-size:12px; margin-top:2px; }
+.s-btn { padding:8px 16px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block; }
+.btn-danger { background:#3a1a1a; color:#ff4757; border:1px solid #ff4757; }
+.btn-normal { background:#181825; color:#aaa; border:1px solid #2a2a3a; }
+.btn-orange { background:linear-gradient(135deg,#ff6b35,#ff9500); color:#fff; border:none; }
+
+/* Records */
+.records-list { display:flex; flex-direction:column; gap:8px; }
+.ride-card { background:#181825; border-radius:14px; padding:14px; border:1px solid #2a2a3a; }
+.ride-card-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.ride-date { font-size:12px; color:#666; }
+.ride-earn { font-size:16px; font-weight:800; color:#ffa502; }
+.ride-wh { font-size:13px; color:#ddd; font-weight:600; }
+.ride-stats { display:flex; gap:8px; margin-top:6px; }
+.r-tag { font-size:11px; padding:3px 9px; border-radius:6px; font-weight:700; }
+.tag-done { background:#1a3a2a; color:#2ed573; }
+.tag-fail { background:#3a1a1a; color:#ff4757; }
+.tag-total { background:#2a2a3a; color:#888; }
+.tag-vehicle { background:#1a1a3a; color:#5352ed; }
+.empty-records { text-align:center; color:#444; padding:28px; font-size:14px; }
+.loading-records { text-align:center; color:#666; padding:20px; font-size:13px; }
+
+/* About card */
+.about-card { background:linear-gradient(135deg,#181825,#1a1a2e); border-radius:16px; padding:20px; border:1px solid #2a2a3a; text-align:center; }
+.about-logo { font-size:40px; margin-bottom:10px; }
+.about-name { font-size:20px; font-weight:900; }
+.about-name span { color:#ff6b35; }
+.about-ver { font-size:12px; color:#666; margin-top:4px; }
+.about-profile { margin-top:14px; padding:12px; background:#0f0f1a; border-radius:12px; border:1px solid #2a2a3a; text-decoration:none; display:block; color:#ff6b35; font-size:13px; font-weight:700; }
+
+.made-in-india { text-align:center; color:#444; font-size:12px; padding:20px 0 4px; }
+</style>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#ff6b35">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+<div class="topbar">
+  <a href="/dashboard" class="back-btn">← Back</a>
+  <h2>⚙️ Settings</h2>
+  <span></span>
+</div>
+
+<div class="section">
+  <!-- Account -->
+  <div class="section-title">Account</div>
+  <div class="setting-item">
+    <div class="s-left">
+      <div class="s-icon">👤</div>
+      <div class="s-info"><h3>{{ name }}</h3><p>Rider account</p></div>
+    </div>
+    <a href="/logout" class="s-btn btn-normal">Logout</a>
+  </div>
+
+  <!-- Navigation -->
+  <div class="section-title">Navigation</div>
+  <div class="setting-item">
+    <div class="s-left"><div class="s-icon">🗺️</div><div class="s-info"><h3>Live Map</h3><p>Current route & deliveries</p></div></div>
+    <a href="/map" class="s-btn btn-normal">Open</a>
+  </div>
+  <div class="setting-item">
+    <div class="s-left"><div class="s-icon">🏆</div><div class="s-info"><h3>Rewards</h3><p>Today's earnings summary</p></div></div>
+    <a href="/reward" class="s-btn btn-normal">View</a>
+  </div>
+
+  <!-- Ride management -->
+  <div class="section-title">Ride Management</div>
+  <div class="setting-item">
+    <div class="s-left"><div class="s-icon">🗑️</div><div class="s-info"><h3>Clear Today's Ride</h3><p>Delete all stops, start fresh</p></div></div>
+    <button class="s-btn btn-danger" onclick="clearRide()">Clear</button>
+  </div>
+  <div class="setting-item">
+    <div class="s-left"><div class="s-icon">✅</div><div class="s-info"><h3>Finish Ride</h3><p>Mark complete, add to lifetime earnings</p></div></div>
+    <button class="s-btn btn-orange" onclick="finishRide()">Finish</button>
+  </div>
+
+  <!-- Records -->
+  <div class="section-title">📋 Past Ride Records</div>
+  <div id="recordsContainer" class="loading-records">Loading records...</div>
+
+  <!-- About -->
+  <div class="section-title">About</div>
+  <div class="about-card">
+    <div class="about-logo">📦</div>
+    <div class="about-name">Deliver<span>X</span></div>
+    <div class="about-ver">Version {{ version }} • Smart Route Delivery</div>
+    <a href="https://deliver-x-team.vercel.app/" class="about-profile">Click For Free COOKIES</a>
+  </div>
+</div>
+
+<div class="made-in-india">Made with ❤️ in India 🇮🇳</div>
+
+<script>
+async function loadRecords() {
+  const res = await fetch('/records');
+  const data = await res.json();
+  const container = document.getElementById('recordsContainer');
+  if (!data.success || !data.rides.length) {
+    container.innerHTML = '<div class="empty-records">No past rides yet.<br>Complete a ride to see records here.</div>';
+    return;
+  }
+  container.className = 'records-list';
+  container.innerHTML = data.rides.map(r => {
+    const date = r.created_at ? new Date(r.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : 'Unknown date';
+    const earned = (r.completed_count||0) * 20;
+    return `
+    <div class="ride-card">
+      <div class="ride-card-top">
+        <div class="ride-wh">🏭 ${r.warehouse_location||'Unknown'}</div>
+        <div class="ride-earn">₹${earned}</div>
+      </div>
+      <div class="ride-date">📅 ${date}</div>
+      <div class="ride-stats">
+        <span class="r-tag tag-total">📦 ${r.stops_count||0} stops</span>
+        <span class="r-tag tag-done">✅ ${r.completed_count||0} done</span>
+        <span class="r-tag tag-fail">❌ ${(r.stops_count||0)-(r.completed_count||0)} failed</span>
+        ${r.vehicle_number?`<span class="r-tag tag-vehicle">🚗 ${r.vehicle_number}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function clearRide() {
+  if (!confirm("Clear today's ride? All stops will be deleted.")) return;
+  const res = await fetch('/clear_ride', {method:'POST'});
+  const data = await res.json();
+  if (data.success) { alert('Ride cleared!'); window.location.href='/dashboard'; }
+}
+
+async function finishRide() {
+  if (!confirm('Mark ride as finished? Earnings will be added to your lifetime total.')) return;
+  const res = await fetch('/finish_ride', {method:'POST'});
+  const data = await res.json();
+  if (data.success) { alert('Ride finished! Check your lifetime earnings on Dashboard.'); window.location.href='/dashboard'; }
+}
+
+loadRecords();
+</script>
+</body>
+</html>
